@@ -4,7 +4,9 @@ package slipp.yoonsung;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.*;
 import org.springframework.beans.factory.BeanCreationException;
+import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.ChildBeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 
 import java.lang.reflect.Field;
@@ -44,10 +46,11 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         if (beanHash.containsKey(key)) {
             return beanHash.get(key);
         } else {
-            BeanDefinition beanDefinition = getBeanDefinition(key);
-            if (beanDefinition != null) {
+            RootBeanDefinition rbd = getMergedBeanDefinition(key, false);
+            log.debug("RootBeanDefinition :: {} ", rbd);
+            if (rbd != null) {
                 Object newlyCreatedBean = createBean(key);
-                if(beanDefinition instanceof RootBeanDefinition && ((RootBeanDefinition) beanDefinition).isSingleton())
+                if(rbd.isSingleton())
                     beanHash.put(key, newlyCreatedBean);
                 return newlyCreatedBean;
             } else {
@@ -57,11 +60,45 @@ public abstract class AbstractBeanFactory implements BeanFactory {
             }
         }
     }
+    public RootBeanDefinition getMergedBeanDefinition(String beanName, boolean includingAncestors)
+            throws BeansException {
+        try {
+            return getMergedBeanDefinition(beanName, getBeanDefinition(beanName));
+        }
+        catch (org.springframework.beans.NoSuchBeanDefinitionException ex) {
+            throw ex;
+        }
+    }
+
+    protected RootBeanDefinition getMergedBeanDefinition(String beanName, BeanDefinition bd) {
+        if (bd instanceof RootBeanDefinition) {
+            return (RootBeanDefinition) bd;
+        }
+        else if (bd instanceof ChildBeanDefinition) {
+            ChildBeanDefinition cbd = (ChildBeanDefinition) bd;
+            // deep copy
+            RootBeanDefinition rbd = new RootBeanDefinition(getMergedBeanDefinition(cbd.getParentName(), true));
+            // override properties
+            for (int i = 0; i < cbd.getPropertyValues().getPropertyValues().length; i++) {
+                rbd.getPropertyValues().addPropertyValue(cbd.getPropertyValues().getPropertyValues()[i]);
+            }
+            // override settings
+            rbd.setSingleton(cbd.isSingleton());
+            rbd.setLazyInit(cbd.isLazyInit());
+            rbd.setResourceDescription(cbd.getResourceDescription());
+            return rbd;
+        }
+        else {
+            throw new BeanDefinitionStoreException(bd.getResourceDescription(), beanName,
+                    "Definition is neither a RootBeanDefinition nor a ChildBeanDefinition");
+        }
+    }
 
     private Object createBean(String key) {
         try {
             BeanDefinition beanDefinition = getBeanDefinition(key);
             final MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
+            BeanWrapper instanceWrapper = new BeanWrapperImpl(((RootBeanDefinition) beanDefinition).getBeanClass());
 
             Object newlyCreatedBean = ((RootBeanDefinition)beanDefinition).getBeanClass().newInstance();
             applyPropertyValues(beanDefinition, propertyValues, newlyCreatedBean, key);

@@ -1,9 +1,13 @@
 package slipp.yoonsung;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.ChildBeanDefinition;
+import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.context.support.AbstractAutowireCapableBeanFactory;
 
 import java.util.*;
 
@@ -46,6 +50,7 @@ public class DefaultListableBeanFactory extends AbstractBeanFactory implements L
         }
         return bd;
     }
+
 
     // 빈을 등록한다
     @Override
