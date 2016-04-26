@@ -26,12 +26,16 @@ public class XmlFactoryTest {
         reader.loadBeanDefinitions(new ClassPathResource("reftypes.xml", getClass()));
         assertTrue("7 beans in reftypes, not " + xbf.getBeanDefinitionCount(), xbf.getBeanDefinitionCount() == 3);
         TestBean jen = (TestBean) xbf.getBean("jenny");
-        /*TestBean dave = (TestBean) xbf.getBean("david");
+        log.debug("jen : {} ", jen);
+        final ITestBean jennySpouse = jen.getSpouse();
+        log.debug("jenSpouse: {} ", jennySpouse);
+        TestBean dave = (TestBean) xbf.getBean("david");
         TestBean jenks = (TestBean) xbf.getBean("jenks");
         ITestBean davesJen = dave.getSpouse();
         ITestBean jenksJen = jenks.getSpouse();
+        log.debug("davesJen : {} , jenksJen : {}" , davesJen, jenksJen);
         assertTrue("1 jen instance", davesJen == jenksJen);
-        assertTrue("1 jen instance", davesJen == jen);*/
+        //assertTrue("1 jen instance", davesJen == jen);
     }
 
     @Test
@@ -44,11 +48,12 @@ public class XmlFactoryTest {
         assertTrue("7 beans in reftypes, not " + xbf.getBeanDefinitionCount(), xbf.getBeanDefinitionCount() == 3);
         log.info("getBean을 시작합니다");
         TestBean jen = (TestBean) xbf.getBean("jenny");
-//        TestBean dave = (TestBean) xbf.getBean("david");
-//        TestBean jenks = (TestBean) xbf.getBean("jenks");
-//        ITestBean davesJen = dave.getSpouse();
-//        ITestBean jenksJen = jenks.getSpouse();
-//        assertTrue("1 jen instance", davesJen == jenksJen);
+        TestBean dave = (TestBean) xbf.getBean("david");
+        TestBean jenks = (TestBean) xbf.getBean("jenks");
+        ITestBean davesJen = dave.getSpouse();
+        ITestBean jenksJen = jenks.getSpouse();
+        log.debug("davesJen : {} , jenksJen : {}" , davesJen, jenksJen);
+        assertTrue("1 jen instance", davesJen == jenksJen);
 //        assertTrue("1 jen instance", davesJen == jen);
     }
 }

@@ -103,8 +103,9 @@ public abstract class AbstractBeanFactory implements BeanFactory {
             final MutablePropertyValues propertyValues = rbd.getPropertyValues();
             BeanWrapper instanceWrapper = new BeanWrapperImpl(rbd.getBeanClass());
 
-            Object newlyCreatedBean = rbd.getBeanClass().newInstance();
-
+            Object newlyCreatedBean = instanceWrapper.getWrappedInstance();
+            if(rbd.isSingleton())
+                beanHash.put(key, newlyCreatedBean);
             populateBean(key, rbd, instanceWrapper);
 
             //applyPropertyValues(beanDefinition, propertyValues, newlyCreatedBean, key);

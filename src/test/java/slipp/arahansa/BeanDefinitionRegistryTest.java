@@ -12,6 +12,7 @@ import slipp.yoonsung.DefaultListableBeanFactory;
 
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -29,15 +30,9 @@ public class BeanDefinitionRegistryTest {
         p.setProperty("kerry.class", "org.springframework.beans.TestBean");
         p.setProperty("kerry.age", "35");
         (new PropertiesBeanDefinitionReader(bdr)).registerBeanDefinitions(p);
-        final BeanDefinition kerry = bdr.getBeanDefinition("kerry");
-        log.info("Kerry : {} ", kerry);
-        final MutablePropertyValues propertyValues = kerry.getPropertyValues();
-        final PropertyValue age = propertyValues.getPropertyValue("age");
-        final String name = age.getName();
-        log.info("name : {} ", name);
-        final Object value = age.getValue();
-        log.info("value : {}" , value);
 
+        final BeanDefinition kerry = bdr.getBeanDefinition("kerry");
+        beanDefinitionTest(kerry);
     }
 
     @Test
@@ -49,9 +44,21 @@ public class BeanDefinitionRegistryTest {
         p.setProperty("kerry.(singleton)", "false");
         p.setProperty("kerry.age", "35");
         (new PropertiesBeanDefinitionReader(bdr)).registerBeanDefinitions(p);
+
         final BeanDefinition kerry = bdr.getBeanDefinition("kerry");
         log.info("Kerry : {} ", kerry);
+        beanDefinitionTest(kerry);
+    }
 
+    private void beanDefinitionTest(BeanDefinition beanDefinition){
+        log.info("Kerry : {} ", beanDefinition);
+        final MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
+        final PropertyValue age = propertyValues.getPropertyValue("age");
+        final String name = age.getName();
+        final Object value = age.getValue();
+        log.info("name : {} , value : {}", name, value);
+        assertEquals(name, "age");
+        assertEquals(value, "35");
     }
 
 
