@@ -129,15 +129,18 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
         if (mergedBeanDefinition.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_NAME ||
                 mergedBeanDefinition.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_TYPE) {
+            log.debug("네임이나 타입으로 오토와이어드가 걸립니다. 빈 네임  : {} ", mergedBeanDefinition.getBeanClassName());
             MutablePropertyValues mpvs = new MutablePropertyValues(pvs);
 
             // add property values based on autowire by name if it's applied
             if (mergedBeanDefinition.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_NAME) {
+                log.debug("네임으로 걸립니다. 빈 네임  : {} ", mergedBeanDefinition.getBeanClassName());
                 autowireByName(beanName, mergedBeanDefinition, bw, mpvs);
             }
 
             // add property values based on autowire by type if it's applied
             if (mergedBeanDefinition.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_BY_TYPE) {
+                log.debug("타입으로 걸립니다. 빈 네임  : {} ", mergedBeanDefinition.getBeanClassName());
                 autowireByType(beanName, mergedBeanDefinition, bw, mpvs);
             }
 
@@ -306,6 +309,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
             if (pds[i].getWriteMethod() != null &&
                     !ignoreTypes.contains(pds[i].getPropertyType()) &&
                     pvs.getPropertyValue(pds[i].getName()) == null) {
+                log.debug("pds[i] : {} 에 대한 의존성검사? ", pds[i].getName());
                 boolean isSimple = BeanUtils.isSimpleProperty(pds[i].getPropertyType());
                 boolean unsatisfied = (dependencyCheck == RootBeanDefinition.DEPENDENCY_CHECK_ALL) ||
                         (isSimple && dependencyCheck == RootBeanDefinition.DEPENDENCY_CHECK_SIMPLE) ||

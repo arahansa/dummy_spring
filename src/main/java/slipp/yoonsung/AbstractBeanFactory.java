@@ -3,11 +3,14 @@ package slipp.yoonsung;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.*;
+import org.springframework.beans.PropertyValue;
+import org.springframework.beans.PropertyValues;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.support.ChildBeanDefinition;
-import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.beans.factory.config.RuntimeBeanReference;
+import org.springframework.beans.factory.support.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -96,12 +99,15 @@ public abstract class AbstractBeanFactory implements BeanFactory {
 
     private Object createBean(String key) {
         try {
-            BeanDefinition beanDefinition = getBeanDefinition(key);
-            final MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
-            BeanWrapper instanceWrapper = new BeanWrapperImpl(((RootBeanDefinition) beanDefinition).getBeanClass());
+            RootBeanDefinition rbd = getMergedBeanDefinition(key, false);
+            final MutablePropertyValues propertyValues = rbd.getPropertyValues();
+            BeanWrapper instanceWrapper = new BeanWrapperImpl(rbd.getBeanClass());
 
-            Object newlyCreatedBean = ((RootBeanDefinition)beanDefinition).getBeanClass().newInstance();
-            applyPropertyValues(beanDefinition, propertyValues, newlyCreatedBean, key);
+            Object newlyCreatedBean = rbd.getBeanClass().newInstance();
+
+            populateBean(key, rbd, instanceWrapper);
+
+            //applyPropertyValues(beanDefinition, propertyValues, newlyCreatedBean, key);
             callLifecycleMethodsIfNecessary(newlyCreatedBean);
             return newlyCreatedBean;
         } catch (InstantiationException e) {
@@ -113,6 +119,76 @@ public abstract class AbstractBeanFactory implements BeanFactory {
         } catch(Exception e){
             e.printStackTrace();
             throw new BeanCreationException("key : "+key + "failed create bean");
+        }
+    }
+
+    protected void populateBean(String beanName, RootBeanDefinition mergedBeanDefinition, BeanWrapper bw) {
+        PropertyValues pvs = mergedBeanDefinition.getPropertyValues();
+        applyPropertyValues(beanName, mergedBeanDefinition, bw, pvs);
+    }
+
+    protected void applyPropertyValues(String beanName, RootBeanDefinition mergedBeanDefinition, BeanWrapper bw,
+                                       PropertyValues pvs) throws BeansException {
+        if (pvs == null) {
+            return;
+        }
+        MutablePropertyValues deepCopy = new MutablePropertyValues(pvs);
+        PropertyValue[] pvals = deepCopy.getPropertyValues();
+        for (int i = 0; i < pvals.length; i++) {
+            Object value = resolveValueIfNecessary(beanName, mergedBeanDefinition,
+                    pvals[i].getName(), pvals[i].getValue());
+            PropertyValue pv = new PropertyValue(pvals[i].getName(), value);
+            // update mutable copy
+            deepCopy.setPropertyValueAt(pv, i);
+        }
+        // set our (possibly massaged) deepCopy
+        try {
+            // synchronize if custom editors are registered
+            // necessary because PropertyEditors are not thread-safe
+            bw.setPropertyValues(deepCopy);
+        }
+        catch (BeansException ex) {
+            // improve the message by showing the context
+            throw new BeanCreationException(mergedBeanDefinition.getResourceDescription(), beanName,
+                    "Error setting property values", ex);
+        }
+    }
+
+    protected Object resolveValueIfNecessary(String beanName, RootBeanDefinition mergedBeanDefinition,
+                                             String argName, Object value) throws BeansException {
+        // We must check each PropertyValue to see whether it
+        // requires a runtime reference to another bean to be resolved.
+        // If it does, we'll attempt to instantiate the bean and set the reference.
+        if (value instanceof AbstractBeanDefinition) {
+            BeanDefinition bd = (BeanDefinition) value;
+            if (bd instanceof AbstractBeanDefinition) {
+                // an inner bean should never be cached as singleton
+                ((AbstractBeanDefinition) bd).setSingleton(false);
+            }
+            String innerBeanName = "(inner bean for property '" + beanName + "." + argName + "')";
+            Object bean = createBean(beanName);
+            return bean; //getObjectForSharedInstance(innerBeanName, bean);
+        }
+        else if (value instanceof RuntimeBeanReference) {
+            RuntimeBeanReference ref = (RuntimeBeanReference) value;
+            return resolveReference(mergedBeanDefinition, beanName, argName, ref);
+        }
+        else {
+            // no need to resolve value
+            return value;
+        }
+    }
+    protected Object resolveReference(RootBeanDefinition mergedBeanDefinition, String beanName,
+                                      String argName, RuntimeBeanReference ref) throws BeansException {
+        try {
+            log.debug("Resolving reference from property '" + argName + "' in bean '" +
+                    beanName + "' to bean '" + ref.getBeanName() + "'");
+            return getBean(ref.getBeanName());
+        }
+        catch (BeansException ex) {
+            throw new BeanCreationException(mergedBeanDefinition.getResourceDescription(), beanName,
+                    "Can't resolve reference to bean '" + ref.getBeanName() +
+                            "' while setting property '" + argName + "'", ex);
         }
     }
 

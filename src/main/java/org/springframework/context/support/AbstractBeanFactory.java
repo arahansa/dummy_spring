@@ -218,7 +218,7 @@ public abstract class AbstractBeanFactory implements ConfigurableBeanFactory {
                 log.debug("Calling code asked for FactoryBean instance for name '" + beanName + "'");
             }
         }
-
+        log.debug("다음의 빈 인스턴스를 반납합니다  : {} ", beanInstance);
         return beanInstance;
     }
 
